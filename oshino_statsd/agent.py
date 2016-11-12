@@ -48,7 +48,9 @@ class Set(Metric):
 
 def parse_metrics(msg):
     metrics = msg.decode("UTF-8").split("\n")
-    for metric in metrics[:-1]:
+    for metric in metrics:
+        if len(metric) == 0:
+            continue
         head, tail = metric.split(":", 1)
         buff = tail.split("|")
         yield Metric.create(head, *buff)
