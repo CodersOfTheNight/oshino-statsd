@@ -12,15 +12,16 @@ class Metric(object):
         self.value = value
         self.sampling = sampling
 
+    @staticmethod
     def create(bucket, value, _type, sampling=None):
         if _type == "c":
-            return Counter(value, sampling)
+            return Counter(bucket, value, sampling)
         elif _type == "ms":
-            return Timer(value, sampling)
+            return Timer(bucket, value, sampling)
         elif _type == "g":
-            return Gauge(value, sampling)
+            return Gauge(bucket, value, sampling)
         elif _type == "s":
-            return Set(value, sampling)
+            return Set(bucket, value, sampling)
         else:
             raise RuntimeError("Unknown metric type: {0}".format(_type))
 
@@ -91,6 +92,7 @@ class StatsdAgent(Agent):
             msg = self.queue.get()
             logger.debug("Got msg: {0}".format(msg))
             for m in parse_metrics(msg):
+                logger.debug("Sending metric with name:{0} and value:{1}".format(self.prefix + m.bucket, m.value))
                 event_fn(service=self.prefix + m.bucket,
-                         metric_f=m.value,
+                         metric_f=float(m.value),
                          tags=m.get_tags())
