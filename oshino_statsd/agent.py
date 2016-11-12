@@ -26,7 +26,7 @@ class Metric(object):
 
     def get_tags(self):
         name = self.__class__.__name__
-        return name.lower() + "s"
+        return [name.lower() + "s"]
 
 
 class Counter(Metric):
