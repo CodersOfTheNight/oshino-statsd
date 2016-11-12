@@ -5,6 +5,54 @@ from oshino import Agent
 from oshino_statsd import receiver
 
 
+class Metric(object):
+
+    def __init__(self, bucket, value, sampling=None):
+        self.bucket = bucket
+        self.value = value
+        self.sampling = sampling
+
+    def create(bucket, value, _type, sampling=None):
+        if _type == "c":
+            return Counter(value, sampling)
+        elif _type == "ms":
+            return Timer(value, sampling)
+        elif _type == "g":
+            return Gauge(value, sampling)
+        elif _type == "s":
+            return Set(value, sampling)
+        else:
+            raise RuntimeError("Unknown metric type: {0}".format(_type))
+
+    def get_tags(self):
+        name = self.__class__.__name__
+        return name.lower() + "s"
+
+
+class Counter(Metric):
+    pass
+
+
+class Timer(Metric):
+    pass
+
+
+class Gauge(Metric):
+    pass
+
+
+class Set(Metric):
+    pass
+
+
+def parse_metrics(msg):
+    metrics = msg.decode("UTF-8").split("\n")
+    for metric in metrics[:-1]:
+        head, tail = metric.split(":", 1)
+        buff = tail.split("|")
+        yield Metric.create(head, *buff)
+
+
 class StatsdAgent(Agent):
 
     def __init__(self, cfg):
@@ -42,3 +90,7 @@ class StatsdAgent(Agent):
         while not self.queue.empty():
             msg = self.queue.get()
             logger.debug("Got msg: {0}".format(msg))
+            for m in parse_metrics(msg):
+                event_fn(service=self.prefix + m.bucket,
+                         metric_f=m.value,
+                         tags=m.get_tags())
